@@ -14,6 +14,7 @@ struct arg
     unsigned int mode;
     char Localpath[301];
     char Serverpath[301];
+    char Serverbakpath[301];
     char listfilename[301];
     char okfilename[301];
     char logfile[301];
@@ -25,13 +26,18 @@ vector<string> vokfilename;
 
 
 bool GetNewfile_and_AddOkfile();
+bool GetFileAndRemove();
+bool GetFileAndDelete();
+
 bool Compare();
 bool Load_vokfilename(char *okfilename);
 bool Load_vlistfilename(char *listfilename);
 
 int main(int argc,char *argv[])
 {
-    printf("./Ftp_get \"<Server_ip>192.168.198.129</Server_ip><logfile>logfile.txt</logfile><okfilename>okfilename.txt</okfilename><listfilename>/home/xiaofeng/Item/Data_swtiching_center/listfilename.txt</listfilename><Server_post>21</Server_post><username>xiaofeng</username><password>asdf1234</password><mode>1</mode><Localpath>/home/xiaofeng/Item/local_tmp</Localpath><Serverpath>/home/xiaofeng/Item/tmp</Serverpath>\"\n");
+    int type=3;
+    printf("./Ftp_get \"<Server_ip>192.168.198.129</Server_ip><Serverbakpath>/home/xiaofeng/Item/baktmp</Serverbakpath><logfile>logfile.txt</logfile><okfilename>okfilename.txt</okfilename><listfilename>/home/xiaofeng/Item/Data_swtiching_center/listfilename.txt</listfilename><Server_post>21</Server_post><username>xiaofeng</username><password>asdf1234</password><mode>1</mode><Localpath>/home/xiaofeng/Item/local_tmp</Localpath><Serverpath>/home/xiaofeng/Item/tmp</Serverpath>\"\n");
+
 
     GetXMLBuffer(argv[1],"Server_ip",st_arg.Server_ip);
     GetXMLBuffer(argv[1],"Server_post",&st_arg.Server_post);
@@ -40,6 +46,7 @@ int main(int argc,char *argv[])
     GetXMLBuffer(argv[1],"mode",&st_arg.mode);
     GetXMLBuffer(argv[1],"Localpath",st_arg.Localpath);
     GetXMLBuffer(argv[1],"Serverpath",st_arg.Serverpath);
+    GetXMLBuffer(argv[1],"Serverbakpath",st_arg.Serverbakpath);
     GetXMLBuffer(argv[1],"listfilename",st_arg.listfilename);
     GetXMLBuffer(argv[1],"okfilename",st_arg.okfilename);
     GetXMLBuffer(argv[1],"logfile",st_arg.logfile);
@@ -55,10 +62,22 @@ int main(int argc,char *argv[])
 
     if(ftp.nlist(".",st_arg.listfilename)==false) Logfile.Write("nlist false\n"); // ftp获取到指定服务器目录下的所有文件，并将文件名写入到文件listfilename
 
-    Load_vokfilename(st_arg.okfilename); // 将okfilename (包含从服务器上已获取的文件名)里面的文件名加载到容器vokfilename里面
     Load_vlistfilename(st_arg.listfilename); // 将ftp.nlist获取到的文件名加载到容器vlistfilename里面 
-    Compare(); // 对比vokfilename和vlistfilename并将新增加的文件名加载到vnewlistfilename里面
-    GetNewfile_and_AddOkfile(); // 通过ftp获取新增的文件，获取完成之后将新增的文件名追加到文件okfilename
+
+    if(type==1)
+    {
+        Load_vokfilename(st_arg.okfilename); // 将okfilename (包含从服务器上已获取的文件名)里面的文件名加载到容器vokfilename里面
+        Compare();                  // 对比vokfilename和vlistfilename并将新增加的文件名加载到vnewlistfilename里面
+        GetNewfile_and_AddOkfile(); // 通过ftp获取新增的文件，获取完成之后将新增的文件名追加到文件okfilename
+    }
+    else if(type==2)
+    {
+        GetFileAndDelete();
+    }
+    else
+    {
+        GetFileAndRemove();
+    }
 
 }
 
@@ -118,6 +137,47 @@ bool Compare()
                     vnewlistfilename.push_back(vlistfilename[ii]); // 如果vokfilename里面没有和vlistfilename[ii]一样的文件名，说明是新增的文件名
         }
     }
+}
+
+bool GetFileAndRemove()
+{
+    char strServerfilenamebak[301];
+
+    printf("vlistfilename===%ld\n",vlistfilename.size());
+    for(unsigned long ii=0;ii<vlistfilename.size();ii++)
+    {
+        char strServerfilename[301],strLocalfilename[301];
+        SNPRINTF(strLocalfilename,300,"%s/%s",st_arg.Localpath,vlistfilename[ii].c_str()); // 本地目录
+        SNPRINTF(strServerfilename,300,"%s/%s",st_arg.Serverpath,vlistfilename[ii].c_str()); // 服务器目录
+            
+        SNPRINTF(strServerfilenamebak,300,"%s/%s",st_arg.Serverbakpath,vlistfilename[ii].c_str());
+        if(ftp.get(strServerfilename,strLocalfilename)==true) // 获取新增加的文件
+        {
+            Logfile.Write("get listfile--%s ok\n",vlistfilename[ii].c_str());
+            if(ftp.ftprename(strServerfilename,strServerfilenamebak)==false) { Logfile.Write("ftprename %s false",vlistfilename[ii].c_str()); }
+        }
+
+    }
+    return true;
+
+}
+bool GetFileAndDelete()
+{
+    printf("vlistfilename===%ld\n",vlistfilename.size());
+    for(unsigned long ii=0;ii<vlistfilename.size();ii++)
+    {
+        char strServerfilename[301],strLocalfilename[301];
+        SNPRINTF(strLocalfilename,300,"%s/%s",st_arg.Localpath,vlistfilename[ii].c_str()); // 本地目录
+        SNPRINTF(strServerfilename,300,"%s/%s",st_arg.Serverpath,vlistfilename[ii].c_str()); // 服务器目录
+        if(ftp.get(strServerfilename,strLocalfilename)==true) // 获取新增加的文件
+        {
+            Logfile.Write("get listfile--%s ok\n",vlistfilename[ii].c_str());
+            if(ftp.ftpdelete(vlistfilename[ii].c_str())==false) { Logfile.Write("ftpdelete %s false",vlistfilename[ii].c_str()); }
+        }
+
+    }
+    return true;
+
 }
 
 bool GetNewfile_and_AddOkfile()

@@ -20,22 +20,25 @@ struct arg
     char logfile[301];
 }st_arg;
 
-vector<string> vlistfilename;
-vector<string> vnewlistfilename;
-vector<string> vokfilename;
+struct listfile
+{
+    char fileName[301];
+    char fileTime[31];
+};
+
+vector<struct listfile> vlistfilename;
+vector<struct listfile> vnewlistfilename;
+vector<struct listfile> vokfilename;
 
 
-bool GetNewfile_and_AddOkfile();
-bool GetFileAndRemove();
-bool GetFileAndDelete();
 
 bool Compare();
-bool Load_vokfilename(char *okfilename);
-bool Load_vlistfilename(char *listfilename);
+bool LoadToVokfilename(char *okfilename);
+bool LoadToVlistfilename(char *listfilename);
+bool GetFileType(int type);
 
 int main(int argc,char *argv[])
 {
-    int type=3;
     printf("./Ftp_get \"<Server_ip>192.168.198.129</Server_ip><Serverbakpath>/home/xiaofeng/Item/baktmp</Serverbakpath><logfile>logfile.txt</logfile><okfilename>okfilename.txt</okfilename><listfilename>/home/xiaofeng/Item/Data_swtiching_center/listfilename.txt</listfilename><Server_post>21</Server_post><username>xiaofeng</username><password>asdf1234</password><mode>1</mode><Localpath>/home/xiaofeng/Item/local_tmp</Localpath><Serverpath>/home/xiaofeng/Item/tmp</Serverpath>\"\n");
 
 
@@ -62,54 +65,52 @@ int main(int argc,char *argv[])
 
     if(ftp.nlist(".",st_arg.listfilename)==false) Logfile.Write("nlist false\n"); // ftp获取到指定服务器目录下的所有文件，并将文件名写入到文件listfilename
 
-    Load_vlistfilename(st_arg.listfilename); // 将ftp.nlist获取到的文件名加载到容器vlistfilename里面 
+    LoadToVlistfilename(st_arg.listfilename); // 将ftp.nlist获取到的文件名加载到容器vlistfilename里面 
 
-    if(type==1)
-    {
-        Load_vokfilename(st_arg.okfilename); // 将okfilename (包含从服务器上已获取的文件名)里面的文件名加载到容器vokfilename里面
-        Compare();                  // 对比vokfilename和vlistfilename并将新增加的文件名加载到vnewlistfilename里面
-        GetNewfile_and_AddOkfile(); // 通过ftp获取新增的文件，获取完成之后将新增的文件名追加到文件okfilename
-    }
-    else if(type==2)
-    {
-        GetFileAndDelete();
-    }
-    else
-    {
-        GetFileAndRemove();
-    }
-
+    GetFileType(3);
 }
 
-bool Load_vlistfilename(char *listfilename)
+bool LoadToVlistfilename(char *listfilename)
 {
-    char listbuf[301];
+    struct listfile st_listfile;
+    vlistfilename.clear();
 
     if( File.OpenForRead(listfilename,"r") == false) printf("open %s fail\n",listfilename);
-    vlistfilename.clear();
+
     while(true)
     {
-      if( File.Fgets(listbuf,300,true) == false) break;
-      vlistfilename.push_back(listbuf);
+      if( File.Fgets(st_listfile.fileName,300,true) == false) break;
+      if( ftp.mtime(st_listfile.fileName)==false ) return false;
+      strcpy(st_listfile.fileTime,ftp.m_mtime); // 将ftp.mtime获取到的文件时间复制到结构体st_listfile.fileTime里面
+
+      vlistfilename.push_back(st_listfile);
     }
 
     printf("vlistfilename=%ld\n",vlistfilename.size());
+    return true;
 
 }
 
-bool Load_vokfilename(char *okfilename)
+bool LoadToVokfilename(char *okfilename)
 {
+    struct listfile st_oklistfile;
     char okbuf[301];
     vokfilename.clear();
 
     if( File.OpenForRead(okfilename,"r") == false) { Logfile.Write("%s open %s fail\n",__func__,okfilename); return false;}
+
     while(true)
     {
       if( File.Fgets(okbuf,300,true) == false) break;
-      vokfilename.push_back(okbuf);
+
+      GetXMLBuffer(okbuf,"fileName",st_oklistfile.fileName,301);
+      GetXMLBuffer(okbuf,"fileTime",st_oklistfile.fileTime,20);
+      vokfilename.push_back(st_oklistfile);
     }
+
     printf("vokfilename====%ld\n",vokfilename.size());
     return true;
+
 }
 
 bool Compare()
@@ -125,7 +126,8 @@ bool Compare()
         {
             for(jj=0; jj<vokfilename.size(); jj++)
             {
-                if(strcmp(vlistfilename[ii].c_str(),vokfilename[jj].c_str())==0) // if vlistfilename[ii] is the same to vokfilename number,it mean that vlistfilename[ii] is not a new filename
+                if(  (strcmp(vlistfilename[ii].fileName,vokfilename[jj].fileName)==0) &&
+                     (strcmp(vlistfilename[ii].fileTime,vokfilename[jj].fileTime)==0) ) // 如果在vokfilename里面没有和vlistfilename[ii]一样的文件名和修改时间，则说明vlistfilename[ii]不是新的文件名
                 {
 
                     break;
@@ -134,68 +136,67 @@ bool Compare()
             }
 
             if(jj==vokfilename.size()) 
-                    vnewlistfilename.push_back(vlistfilename[ii]); // 如果vokfilename里面没有和vlistfilename[ii]一样的文件名，说明是新增的文件名
+            {
+                vnewlistfilename.push_back(vlistfilename[ii]); // 如果vokfilename里面没有和vlistfilename[ii]一样的文件名，说明是新增的文件名
+
+            }
         }
     }
 }
 
-bool GetFileAndRemove()
+bool GetFileType(int type)
 {
-    char strServerfilenamebak[301];
 
-    printf("vlistfilename===%ld\n",vlistfilename.size());
+    if(type==3) // 获取服务器上的文件但不对已获取的文件进行任何操作，并且在下次获取的时候不获取已获取的文件
+    {
+    // 将okfilename (包含从服务器上已获取的文件名)里面的文件名加载到容器vokfilename里面
+        LoadToVokfilename(st_arg.okfilename);          
+
+    // 对比vokfilename和vlistfilename并将新增加的文件名加载到vnewlistfilename里面
+        Compare();                           
+
+    // 将vnewlistfilename复制到vlistfilename里面
+        vlistfilename.clear();
+        vlistfilename.swap(vnewlistfilename);
+    }
+
     for(unsigned long ii=0;ii<vlistfilename.size();ii++)
     {
         char strServerfilename[301],strLocalfilename[301];
-        SNPRINTF(strLocalfilename,300,"%s/%s",st_arg.Localpath,vlistfilename[ii].c_str()); // 本地目录
-        SNPRINTF(strServerfilename,300,"%s/%s",st_arg.Serverpath,vlistfilename[ii].c_str()); // 服务器目录
+        SNPRINTF(strLocalfilename,300,"%s/%s",st_arg.Localpath,vlistfilename[ii].fileName); // 本地目录
+        SNPRINTF(strServerfilename,300,"%s/%s",st_arg.Serverpath,vlistfilename[ii].fileName); // 服务器目录
             
-        SNPRINTF(strServerfilenamebak,300,"%s/%s",st_arg.Serverbakpath,vlistfilename[ii].c_str());
-        if(ftp.get(strServerfilename,strLocalfilename)==true) // 获取新增加的文件
+        if(type==1) // 获取服务器上的文件并将已获取的文件移动到备份目录
         {
-            Logfile.Write("get listfile--%s ok\n",vlistfilename[ii].c_str());
-            if(ftp.ftprename(strServerfilename,strServerfilenamebak)==false) { Logfile.Write("ftprename %s false",vlistfilename[ii].c_str()); }
+            char strServerfilenamebak[301];
+            SNPRINTF(strServerfilenamebak,300,"%s/%s",st_arg.Serverbakpath,vlistfilename[ii].fileName);
+            if(ftp.get(strServerfilename,strLocalfilename)==true) // 获取新增加的文件
+            {
+                Logfile.Write("get listfile--%s ok\n",vlistfilename[ii].fileName);
+                if(ftp.ftprename(strServerfilename,strServerfilenamebak)==false) { Logfile.Write("ftprename %s false",vlistfilename[ii].fileName); }
+            }
+        }
+
+        else if(type==2) // 获取服务器上的文件并将已获取的文件删除
+        {
+            if(ftp.get(strServerfilename,strLocalfilename)==true) // 获取新增加的文件
+            {
+                Logfile.Write("get listfile--%s ok\n",vlistfilename[ii].fileName);
+                if(ftp.ftpdelete(vlistfilename[ii].fileName)==false) { Logfile.Write("ftpdelete %s false",vlistfilename[ii].fileName); }
+            }
+        }
+        else if(type==3) // 获取服务器上新增的文件，并将已获取到的文件名追加到okfilename里面
+        {
+            if(ftp.get(strServerfilename,strLocalfilename)==true) // 获取新增加的文件
+            {
+                Logfile.Write("get newlistfile......%s ok\n",vlistfilename[ii].fileName);
+                File.OpenForWrite(st_arg.okfilename,"a+");    
+                File.Fprintf("<fileName>%s</fileName><fileTime>%s</fileTime>\n",vlistfilename[ii].fileName,vlistfilename[ii].fileTime);
+            }
+
         }
 
     }
-    return true;
-
-}
-bool GetFileAndDelete()
-{
-    printf("vlistfilename===%ld\n",vlistfilename.size());
-    for(unsigned long ii=0;ii<vlistfilename.size();ii++)
-    {
-        char strServerfilename[301],strLocalfilename[301];
-        SNPRINTF(strLocalfilename,300,"%s/%s",st_arg.Localpath,vlistfilename[ii].c_str()); // 本地目录
-        SNPRINTF(strServerfilename,300,"%s/%s",st_arg.Serverpath,vlistfilename[ii].c_str()); // 服务器目录
-        if(ftp.get(strServerfilename,strLocalfilename)==true) // 获取新增加的文件
-        {
-            Logfile.Write("get listfile--%s ok\n",vlistfilename[ii].c_str());
-            if(ftp.ftpdelete(vlistfilename[ii].c_str())==false) { Logfile.Write("ftpdelete %s false",vlistfilename[ii].c_str()); }
-        }
-
-    }
-    return true;
 
 }
 
-bool GetNewfile_and_AddOkfile()
-{
-    printf("vnewlistfilename===%ld\n",vnewlistfilename.size());
-    for(unsigned long ii=0;ii<vnewlistfilename.size();ii++)
-    {
-        char strServerfilename[301],strLocalfilename[301];
-        SNPRINTF(strLocalfilename,300,"%s/%s",st_arg.Localpath,vnewlistfilename[ii].c_str()); // 本地目录
-        SNPRINTF(strServerfilename,300,"%s/%s",st_arg.Serverpath,vnewlistfilename[ii].c_str()); // 服务器目录
-        if(ftp.get(strServerfilename,strLocalfilename)==true) // 获取新增加的文件
-        {
-
-            Logfile.Write("get newlistfile--%s ok\n",vnewlistfilename[ii].c_str());
-            File.OpenForWrite(st_arg.okfilename,"a+");   // 
-            File.Fprintf("%s\n",vnewlistfilename[ii].c_str());
-        }
-
-    }
-    return true;
-}

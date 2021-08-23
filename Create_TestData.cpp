@@ -55,7 +55,7 @@ int main(int argc,char *argv[])
 
     char Filename[31];
     memset(Filename,0,sizeof(Filename));
-    snprintf(Filename,300,"%s/%s-%d",argv[2],strLocalTime,getpid());
+    snprintf(Filename,300,"%s/Scene--%s-%d.txt",argv[2],strLocalTime,getpid());
 
     if(File.OpenForRename(Filename,"w")==false) { LogFile.Write("打开文件%s失败\n",argv[2]); return false; }
     for(int ii=0;ii<VSt_stcode_change.size();ii++)
@@ -84,7 +84,7 @@ int Load_Local_Data(char *filename)
     {
         memset(File_Row_Buffer,0,sizeof(File_Row_Buffer));
      // 读取每一行数据
-        if(File.FFGETS(File_Row_Buffer,300)==false) { LogFile.Write("读取文件%s失败\n",filename);  return false; } 
+        if(File.FFGETS(File_Row_Buffer,300)==false)  return false;  
 
      // 对每一行数据进行拆分
         CmdStr.SplitToCmd(File_Row_Buffer,",",true);

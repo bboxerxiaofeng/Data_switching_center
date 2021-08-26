@@ -52,7 +52,7 @@ int main(int argc,char *argv[])
 
         }
         
-        if( conn.connecttodb("scott/13011021@snorcl11g_192","Simplified Chinese_China.ZHS16GBK") !=0 )
+        if( conn.connecttodb("test/test123@snorcl11g_192","AMERICAN_AMERICA.AL32UTF8") !=0 )
         {
             LogFile.Write("connect to db failed\n");
         }
@@ -84,7 +84,7 @@ int DataIntoDb()
     if(File.OpenForRead(Dir.m_FullFileName,"r")==false) return false;
 
     sqlstatement stmtins(&conn);
-    stmtins.prepare("insert into scene (Station_number,Data_time,Temperature,Air_pressure,Relative_humidity,Wind_direction,Wind_speech,Rainfall,Visibility) values(:1,to_date(:2,'yyyy-mm-dd hh24:mi:ss'),:3,:4,:5,:6,:7,:8,:9)");
+    stmtins.prepare("insert into scene (Station_number,Data_time,Temperature,Air_pressure,Relative_humidity,Wind_direction,Wind_speech,Rainfall,Visibility,crttime,keyid) values(:1,to_date(:2,'yyyy-mm-dd hh24:mi:ss'),:3,:4,:5,:6,:7,:8,:9,sysdate,SEQ_SURFDATA.nextval)");
     stmtins.bindin(1,&stcode_change.Station_number);
     stmtins.bindin(2,stcode_change.Data_time,19);
     stmtins.bindin(3,&stcode_change.Temperature);
@@ -117,8 +117,8 @@ int DataIntoDb()
 
         if(stmtins.execute()!=0)
         {
-            LogFile.Write("stmtins execute fails\n%s\n%s",stmtins.m_sql,stmtins.m_cda.message);
-            return false;
+            //LogFile.Write("stmtins execute fails\n%s\n%s",stmtins.m_sql,stmtins.m_cda.message);
+            //return false;
             if(stmtins.m_cda.rc !=1)
             {
                 return false;
@@ -129,7 +129,7 @@ int DataIntoDb()
     }
     conn.commit();
 
-    File.CloseAndRemove();
+    //File.CloseAndRemove();
 
     return true;
 

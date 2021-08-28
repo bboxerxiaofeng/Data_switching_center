@@ -83,6 +83,14 @@ int DataIntoDb()
     char File_Row_Buffer[100];
     if(File.OpenForRead(Dir.m_FullFileName,"r")==false) return false;
 
+    
+    int iccount=0;
+    sqlstatement stmtsel(&conn);
+    stmtsel.prepare("select count(*) from scene where Station_number=:1 and Data_time=to_date(:2,'yyyy-mm-dd hh24:mi:ss')");
+    stmtsel.bindin( 1, &stcode_change.Station_number);
+    stmtsel.bindin( 2, stcode_change.Data_time,19 );
+    stmtsel.bindout(1,&iccount);
+
     sqlstatement stmtins(&conn);
     stmtins.prepare("insert into scene (Station_number,Data_time,Temperature,Air_pressure,Relative_humidity,Wind_direction,Wind_speech,Rainfall,Visibility,crttime,keyid) values(:1,to_date(:2,'yyyy-mm-dd hh24:mi:ss'),:3,:4,:5,:6,:7,:8,:9,sysdate,SEQ_SURFDATA.nextval)");
     stmtins.bindin(1,&stcode_change.Station_number);
@@ -114,22 +122,34 @@ int DataIntoDb()
         CmdStr.GetValue(6,&stcode_change.Wind_speech);
         CmdStr.GetValue(7,&stcode_change.Rainfall);
         CmdStr.GetValue(8,&stcode_change.Visibility);
+        
+        if (stmtsel.execute() != 0)
+        {
+           LogFile.Write("stmtsel.execute() failed.\n%s\n%s\n",stmtsel.m_sql,stmtsel.m_cda.message); 
+           if ( (stmtsel.m_cda.rc>=3113) && (stmtsel.m_cda.rc<=3115)  ) return false;
+           continue;
+        }
 
+        iccount=0;
+        stmtsel.next(); // 解决主键冲突
+
+        if (iccount>0) continue;
+                        
         if(stmtins.execute()!=0)
         {
             //LogFile.Write("stmtins execute fails\n%s\n%s",stmtins.m_sql,stmtins.m_cda.message);
             //return false;
             if(stmtins.m_cda.rc !=1)
             {
-                return false;
-
+              LogFile.Write("stmtins execute fails\n%s\n%s",stmtins.m_sql,stmtins.m_cda.message);
+               // return false;
             }
         }
-        
     }
+
     conn.commit();
 
-    //File.CloseAndRemove();
+    File.CloseAndRemove();
 
     return true;
 

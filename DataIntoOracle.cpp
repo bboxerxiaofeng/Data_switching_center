@@ -137,12 +137,10 @@ int DataIntoDb()
                         
         if(stmtins.execute()!=0)
         {
-            //LogFile.Write("stmtins execute fails\n%s\n%s",stmtins.m_sql,stmtins.m_cda.message);
-            //return false;
             if(stmtins.m_cda.rc !=1)
             {
               LogFile.Write("stmtins execute fails\n%s\n%s",stmtins.m_sql,stmtins.m_cda.message);
-               // return false;
+              if( (stmtins.m_cda.rc>=3113) && (stmtins.m_cda.rc<=3115) ) return false;
             }
         }
     }

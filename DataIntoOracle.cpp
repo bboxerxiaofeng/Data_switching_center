@@ -28,6 +28,7 @@ CDir Dir;
 connection conn;
 
 int DataIntoDb();
+void EXIT(int sig);
 
 int main(int argc,char *argv[])
 {
@@ -39,7 +40,16 @@ int main(int argc,char *argv[])
         return false;
     }
 
-    LogFile.Open(argv[1],"a+");
+    //屏蔽全部信号的输入和输出
+    CloseIOAndSignal();
+
+    // 处理程序退出函数
+    signal(SIGINT,EXIT); signal(SIGTERM,EXIT);
+
+    if( LogFile.Open(argv[1],"a+") ==false) 
+    {
+        printf("打开日志文件%s false\n",argv[1]); return false;
+    }
     
     while(true)
     {
@@ -56,9 +66,12 @@ int main(int argc,char *argv[])
                 break;
             }
             
-            if( conn.connecttodb(argv[4],argv[5])!=0 )
+            if(conn.m_state==0) // m_state为数据库连接标志位
             {
-                LogFile.Write("connect to db failed\n");
+                if( conn.connecttodb(argv[4],argv[5])!=0 )
+                {
+                    LogFile.Write("connect to db failed\n");
+                }
             }
     
             LogFile.Write("开始处理文件%s...",Dir.m_FileName);
@@ -73,7 +86,8 @@ int main(int argc,char *argv[])
     
         }
     
-        conn.disconnect();
+        if(conn.m_state==1)  conn.disconnect();
+
         sleep(atoi(argv[3]));
     
     }
@@ -156,4 +170,10 @@ int DataIntoDb()
 
     return true;
 
+}
+
+void EXIT(int sig)
+{
+    LogFile.Write("程序退出，sig=%d\n\n",sig);
+    exit(0);
 }

@@ -260,11 +260,11 @@ void _help()
 {
   printf("\n");
 
-  printf("./Ftp_get \"<Server_ip>192.168.198.129</Server_ip><timetvl>20</timetvl><matchname>*.txt,*log</matchname><type>3</type><Serverbakpath>/home/xiaofeng/Item/baktmp</Serverbakpath><logfile>/home/xiaofeng/Item/log/logfile.txt</logfile><okfilename>/home/xiaofeng/Item/Data_swtiching_center/okfilename.txt</okfilename><listfilename>/home/xiaofeng/Item/Data_swtiching_center/listfilename.txt</listfilename><Server_post>21</Server_post><username>xiaofeng</username><password>asdf1234</password><mode>1</mode><Localpath>/home/xiaofeng/Item/local_tmp</Localpath><Serverpath>/home/xiaofeng/Item/tmp</Serverpath>\"\n");
+  printf("./Ftp_get \"<Server_ip>192.168.198.129</Server_ip><timetvl>20</timetvl><matchname>*.txt,*log</matchname><type>3</type><Serverbakpath>/home/xiaofeng/Item/baktmp</Serverbakpath><logfile>/home/xiaofeng/Item/log/FtpGet.log</logfile><okfilename>/home/xiaofeng/Item/Data_swtiching_center/okfilename.txt</okfilename><listfilename>/home/xiaofeng/Item/Data_swtiching_center/listfilename.txt</listfilename><Server_post>21</Server_post><username>xiaofeng</username><password>asdf1234</password><mode>1</mode><Localpath>/home/xiaofeng/Item/local_tmp</Localpath><Serverpath>/home/xiaofeng/Item/tmp</Serverpath>\"\n");
 
   printf("本程序是数据中心的公共功能模块，用于把远程FTP服务器的文件采集到本地目录。\n");
   printf("xmlbuffer为文件传输的参数，如下：\n");
-  printf("<logfile>/home/xiaofeng/Item/log/logfile.txt</logfile> 本程序运行的日志文件。\n");
+  printf("<logfile>/home/xiaofeng/Item/log/FtpGet.log</logfile> 本程序运行的日志文件。\n");
   printf("<Server_ip>192.168.198.129</Server_ip> 远程服务器的IP。\n");
   printf("<Server_post>21</Server_post> 远程服务器的端口。\n");
   printf("<mode>1</mode> 传输模式，1-被动模式，2-主动模式，缺省采用被模式。\n");

@@ -46,7 +46,7 @@ int main(int argc,char *argv[])
     {
         printf("该程序的功能为生成测试数据,请按照以下格式进行重新输入：\n "\
                 "运行的bin+要读取文件路径+经处理后文件的存放路径+log存放路径+生成新文件的时间间隔\n" \
-                "比如：./Create_TestData /home/xiaofeng/Item/ini/stcode.ini /home/xiaofeng/Item/tmp /home/xiaofeng/Item/log/Createdata.log 10\n");
+                "比如：./Create_TestData /home/xiaofeng/Item/ini/stcode.ini /home/xiaofeng/Item/tmp /home/xiaofeng/Item/log/Createdata.log 60\n");
         return false;
     }
 

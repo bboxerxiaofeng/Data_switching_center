@@ -36,7 +36,7 @@ int main(int argc,char *argv[])
     {
        printf("该程序的功能为生成测试数据,请按照以下格式进行重新输入：\n "\
                 "运行的bin+存放日志的路径+读取目录路径+读取间隔+sql账号+sql字符集\n" \
-                "比如：./DataIntoOracle /home/xiaofeng/Item/Data_swtiching_center/log2.txt /home/xiaofeng/Item/local_tmp 10 test/test123@snorcl11g_192 AMERICAN_AMERICA.AL32UTF8\n");
+                "比如：./DataIntoOracle /home/xiaofeng/Item/log/DataIntoDb.log /home/xiaofeng/Item/local_tmp 10 test/test123@snorcl11g_192 AMERICAN_AMERICA.AL32UTF8\n");
         return false;
     }
 

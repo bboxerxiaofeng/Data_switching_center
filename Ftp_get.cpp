@@ -20,6 +20,7 @@ struct arg
     char logfile[301];
     char matchname[31];
     int type;
+    int timetvl;
 }st_arg;
 
 struct listfile
@@ -55,15 +56,24 @@ int main(int argc,char *argv[])
     
     Logfile.Open(st_arg.logfile,"a+");    // 打开用来写入log的文件
 
-    if( ftp.login(st_arg.Server_ip,st_arg.Server_post,st_arg.username,st_arg.password) == false) Logfile.Write("ftp.login false\n"); // ftp 登录
+    while(true)
+    {
 
-    if( ftp.chdir(st_arg.Serverpath) == false) Logfile.Write("ftp.chdir false\n"); // ftp 进入目标目录
+        if( ftp.login(st_arg.Server_ip,st_arg.Server_post,st_arg.username,st_arg.password) == false) Logfile.Write("ftp.login false\n"); // ftp 登录
 
-    if( ftp.nlist(".",st_arg.listfilename)==false) Logfile.Write("nlist false\n"); // ftp获取到指定服务器目录下的所有文件，并将文件名写入到文件listfilename
+        if( ftp.chdir(st_arg.Serverpath) == false) Logfile.Write("ftp.chdir false\n"); // ftp 进入目标目录
 
-    LoadToVlistfilename(st_arg.listfilename); // 将ftp.nlist获取到的文件名加载到容器vlistfilename里面 
+        if( ftp.nlist(".",st_arg.listfilename)==false) Logfile.Write("nlist false\n"); // ftp获取到指定服务器目录下的所有文件，并将文件名写入到文件listfilename
 
-    GetFileType(); // 获取文件方式的功能函数：1-将服务器上已获取的文件转移到备份目录 2-将服务器上已获取的文件删除 3-对已获取的服务器上的文件不做任何操作，并下次获取时不会获取重复文件
+        LoadToVlistfilename(st_arg.listfilename); // 将ftp.nlist获取到的文件名加载到容器vlistfilename里面 
+
+        GetFileType(); // 获取文件方式的功能函数：1-将服务器上已获取的文件转移到备份目录 2-将服务器上已获取的文件删除 3-对已获取的服务器上的文件不做任何操作，并下次获取时不会获取重复文件
+
+        ftp.logout();
+
+        sleep(st_arg.timetvl);
+
+    }
 }
 
 bool LoadToVlistfilename(char *listfilename)
@@ -238,6 +248,10 @@ bool analysisXML(char *xmlbuf)
 
     GetXMLBuffer(xmlbuf,"type",&st_arg.type);
     if ((st_arg.type!=1)&&(st_arg.type!=2)&&(st_arg.type!=3)) { Logfile.Write("type is error.\n"); return false;  }
+
+    GetXMLBuffer(xmlbuf,"timetvl",&st_arg.timetvl);
+    if (strlen(st_arg.matchname)==0) { Logfile.Write("matchname is null.\n"); return false;  }
+
     return true;
 
 }
@@ -246,7 +260,7 @@ void _help()
 {
   printf("\n");
 
-  printf("./Ftp_get \"<Server_ip>192.168.198.129</Server_ip><matchname>*.txt,*log</matchname><type>3</type><Serverbakpath>/home/xiaofeng/Item/baktmp</Serverbakpath><logfile>/home/xiaofeng/Item/log/logfile.txt</logfile><okfilename>/home/xiaofeng/Item/Data_swtiching_center/okfilename.txt</okfilename><listfilename>/home/xiaofeng/Item/Data_swtiching_center/listfilename.txt</listfilename><Server_post>21</Server_post><username>xiaofeng</username><password>asdf1234</password><mode>1</mode><Localpath>/home/xiaofeng/Item/local_tmp</Localpath><Serverpath>/home/xiaofeng/Item/tmp</Serverpath>\"\n");
+  printf("./Ftp_get \"<Server_ip>192.168.198.129</Server_ip><timetvl>20</timetvl><matchname>*.txt,*log</matchname><type>3</type><Serverbakpath>/home/xiaofeng/Item/baktmp</Serverbakpath><logfile>/home/xiaofeng/Item/log/logfile.txt</logfile><okfilename>/home/xiaofeng/Item/Data_swtiching_center/okfilename.txt</okfilename><listfilename>/home/xiaofeng/Item/Data_swtiching_center/listfilename.txt</listfilename><Server_post>21</Server_post><username>xiaofeng</username><password>asdf1234</password><mode>1</mode><Localpath>/home/xiaofeng/Item/local_tmp</Localpath><Serverpath>/home/xiaofeng/Item/tmp</Serverpath>\"\n");
 
   printf("本程序是数据中心的公共功能模块，用于把远程FTP服务器的文件采集到本地目录。\n");
   printf("xmlbuffer为文件传输的参数，如下：\n");

@@ -31,49 +31,54 @@ int DataIntoDb();
 
 int main(int argc,char *argv[])
 {
-    if(argc!=2)
+    if(argc!=6)
     {
        printf("该程序的功能为生成测试数据,请按照以下格式进行重新输入：\n "\
-                "运行的bin+存放日志的路径\n" \
-                "比如：./DataIntoOracle /home/xiaofeng/Item/Data_swtiching_center/log2.txt \n");
+                "运行的bin+存放日志的路径+读取目录路径+读取间隔+sql账号+sql字符集\n" \
+                "比如：./DataIntoOracle /home/xiaofeng/Item/Data_swtiching_center/log2.txt /home/xiaofeng/Item/local_tmp 10 test/test123@snorcl11g_192 AMERICAN_AMERICA.AL32UTF8\n");
         return false;
     }
 
-    
-    Dir.OpenDir("/home/xiaofeng/Item/local_tmp");
     LogFile.Open(argv[1],"a+");
-
+    
     while(true)
     {
-        if(Dir.ReadDir() == false) 
+        if( Dir.OpenDir(argv[2])==false) 
         {
-            LogFile.Write("没有读取到目录下的文件\n");
-            break;
-
-        }
-        
-        if( conn.connecttodb("test/test123@snorcl11g_192","AMERICAN_AMERICA.AL32UTF8") !=0 )
-        {
-            LogFile.Write("connect to db failed\n");
+            LogFile.Write("Open Dir false\n"); sleep(atoi(argv[3])); continue;
         }
 
-        LogFile.Write("开始处理文件%s...",Dir.m_FileName);
-
-        if(DataIntoDb()==false) 
+        while(true)
         {
-            LogFile.WriteEx("失败\n");
-            break;
+            if(Dir.ReadDir() == false) 
+            {
+                LogFile.Write("没有读取到目录下的文件\n");
+                break;
+            }
+            
+            if( conn.connecttodb(argv[4],argv[5])!=0 )
+            {
+                LogFile.Write("connect to db failed\n");
+            }
+    
+            LogFile.Write("开始处理文件%s...",Dir.m_FileName);
+    
+            if(DataIntoDb()==false) 
+            {
+                LogFile.WriteEx("失败\n");
+                break;
+            }
+    
+            LogFile.WriteEx("成功\n");
+    
         }
-
-        LogFile.WriteEx("成功\n");
-
+    
+        conn.disconnect();
+        sleep(atoi(argv[3]));
+    
     }
 
-    conn.disconnect();
-
     return 0;
-
-
 }
 
 int DataIntoDb()
